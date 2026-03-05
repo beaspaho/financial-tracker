@@ -1,0 +1,52 @@
+spring:
+  application:
+    name: finance-tracker
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/financedb
+    username: ${DB_USERNAME:app}
+    password: ${DB_PASSWORD:secret}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate          # Flyway owns schema ? Hibernate only validates
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+    open-in-view: false           # Prevent lazy-load outside transaction boundary
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Spring auto-fetches JWKS from:
+          # {issuer-uri}/.well-known/openid-configuration
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/finance}
+
+# ?? Keycloak Admin Config ?????????????????????????????????????????????????????
+# Used by KeycloakAdapter to call the Admin REST API
+keycloak:
+  server-url:           ${KEYCLOAK_SERVER_URL:http://localhost:8180}
+  realm:                ${KEYCLOAK_REALM:finance}
+  admin-client-id:      ${KEYCLOAK_ADMIN_CLIENT_ID:finance-admin}
+  admin-client-secret:  ${KEYCLOAK_ADMIN_CLIENT_SECRET:change-me-in-production}
+  app-client-id:        ${KEYCLOAK_APP_CLIENT_ID:finance-app}
+
+# ?? Logging ???????????????????????????????????????????????????????????????????
+logging:
+  pattern:
+    console: "%d{ISO8601} [%X{requestId:-no-req}] [%X{userId:-anonymous}] %-5level %logger{36} - %msg%n"
+  level:
+    root:                                       INFO
+    com.financetracker:                         DEBUG
+    org.springframework.security:              INFO
+    org.hibernate.SQL:                         DEBUG   # log SQL in dev
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE  # log bind params
+
+# ?? Server ????????????????????????????????????????????????????????????????????
+server:
+  port: 8080
+  servlet:
+    context-path: /
