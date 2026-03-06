@@ -10,7 +10,6 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
-import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.client.RestTemplate;
@@ -19,7 +18,7 @@ import org.springframework.web.client.RestTemplate;
 @EnableWebSecurity
 @EnableMethodSecurity               // enables @PreAuthorize on service methods
 @RequiredArgsConstructor
-public class SecurityConfig extends AbstractHttpConfigurer {
+public class SecurityConfig  {
 
     private final RateLimitingFilter rateLimitingFilter;
 
@@ -52,12 +51,8 @@ public class SecurityConfig extends AbstractHttpConfigurer {
      */
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
-        JwtGrantedAuthoritiesConverter rolesConverter = new JwtGrantedAuthoritiesConverter();
-        rolesConverter.setAuthoritiesClaimName("realm_access.roles");
-        rolesConverter.setAuthorityPrefix("ROLE_");
-
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-        converter.setJwtGrantedAuthoritiesConverter(rolesConverter);
+        converter.setJwtGrantedAuthoritiesConverter(new JwtConverter());
         return converter;
     }
 

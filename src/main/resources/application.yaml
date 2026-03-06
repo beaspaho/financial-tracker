@@ -3,50 +3,101 @@ spring:
     name: finance-tracker
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/financedb
-    username: ${DB_USERNAME:app}
-    password: ${DB_PASSWORD:secret}
+    url:               ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/financedb}
+    username:          ${DB_USERNAME:app}
+    password:          ${DB_PASSWORD:secret}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name:          FinanceTrackerPool
+      maximum-pool-size:  10
+      minimum-idle:       2
+      connection-timeout: 30000
+      idle-timeout:       600000
+      max-lifetime:       1800000
 
   jpa:
     hibernate:
-      ddl-auto: validate          # Flyway owns schema ? Hibernate only validates
+      ddl-auto: validate
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: false
-    open-in-view: false           # Prevent lazy-load outside transaction boundary
+        format_sql:               false
+        default_batch_fetch_size: 20
+        default_schema:           app
+        jdbc:
+          lob:
+            non_contextual_creation: true
+    open-in-view: false
+
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
+
+  flyway:
+    # Schema config is handled in FlywayConfig.java bean.
+    # Only keeping enabled flag here so it can be turned off in tests.
+    enabled: true
 
   security:
     oauth2:
       resourceserver:
         jwt:
-          # Spring auto-fetches JWKS from:
-          # {issuer-uri}/.well-known/openid-configuration
           issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/finance}
+          jwk-set-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/finance}/protocol/openid-connect/certs
 
-# ?? Keycloak Admin Config ?????????????????????????????????????????????????????
-# Used by KeycloakAdapter to call the Admin REST API
+# ── Keycloak Admin Config ─────────────────────────────────────
 keycloak:
-  server-url:           ${KEYCLOAK_SERVER_URL:http://localhost:8180}
-  realm:                ${KEYCLOAK_REALM:finance}
-  admin-client-id:      ${KEYCLOAK_ADMIN_CLIENT_ID:finance-admin}
-  admin-client-secret:  ${KEYCLOAK_ADMIN_CLIENT_SECRET:change-me-in-production}
-  app-client-id:        ${KEYCLOAK_APP_CLIENT_ID:finance-app}
+  server-url:          ${KEYCLOAK_SERVER_URL:http://localhost:8180}
+  realm:               ${KEYCLOAK_REALM:finance}
+  admin-client-id:     ${KEYCLOAK_ADMIN_CLIENT_ID:finance-admin}
+  admin-client-secret: ${KEYCLOAK_ADMIN_CLIENT_SECRET:change-me-in-production}
+  app-client-id:       ${KEYCLOAK_APP_CLIENT_ID:finance-app}
 
-# ?? Logging ???????????????????????????????????????????????????????????????????
+# ── Actuator ──────────────────────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# ── Logging ───────────────────────────────────────────────────
 logging:
   pattern:
     console: "%d{ISO8601} [%X{requestId:-no-req}] [%X{userId:-anonymous}] %-5level %logger{36} - %msg%n"
   level:
-    root:                                       INFO
-    com.financetracker:                         DEBUG
-    org.springframework.security:              INFO
-    org.hibernate.SQL:                         DEBUG   # log SQL in dev
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE  # log bind params
+    root:                                              INFO
+    com.test.financialtracker:                         DEBUG
+    org.springframework.security:                      INFO
+    org.hibernate.SQL:                                 DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder:     TRACE
+    org.flywaydb:                                      INFO
 
-# ?? Server ????????????????????????????????????????????????????????????????????
+# ── Server ────────────────────────────────────────────────────
 server:
   port: 8080
   servlet:
     context-path: /
+
+---
+# ── Docker profile (active inside container) ──────────────────
+spring:
+  config:
+    activate:
+      on-profile: docker
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI}
+          jwk-set-uri: ${KEYCLOAK_ISSUER_URI}/protocol/openid-connect/certs
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+
+logging:
+  level:
+    org.hibernate.SQL:                             INFO
+    org.hibernate.type.descriptor.sql.BasicBinder: INFO

@@ -1,30 +1,39 @@
 package com.test.financialtracker.common;
 
-
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import lombok.Getter;
-import org.springframework.data.annotation.CreatedBy;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import lombok.Setter;
 
-import java.time.Instant;
-//TODO:Decide
+import java.time.OffsetDateTime;
+
+@MappedSuperclass   // ← critical: without this Hibernate ignores the fields entirely
 @Getter
-@MappedSuperclass
-@EntityListeners(AuditingEntityListener.class)
+@Setter
 public abstract class BaseEntity {
 
-    @CreatedDate
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
+    @Column(name = "created_at", nullable = false, updatable = false,
+            columnDefinition = "TIMESTAMPTZ")
+    private OffsetDateTime createdAt;
 
-    @LastModifiedDate
-    @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
+    @Column(name = "updated_at", nullable = false,
+            columnDefinition = "TIMESTAMPTZ")
+    private OffsetDateTime updatedAt;
 
-
-    @CreatedBy
-    @Column(name = "created_by", updatable = false)
+    @Column(name = "created_by")
     private String createdBy;
+
+    @PrePersist
+    protected void onCreate() {
+        OffsetDateTime now = OffsetDateTime.now();
+        this.createdAt = now;
+        this.updatedAt = now;
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = OffsetDateTime.now();
+    }
 }

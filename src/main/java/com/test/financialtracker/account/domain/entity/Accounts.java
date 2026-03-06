@@ -41,9 +41,11 @@ public class Accounts extends BaseEntity {
     private BigDecimal balance;
 
 
-    @Column(nullable = false, length = 3)
-    private String currency;
 
+
+    // After — tell Hibernate the column is CHAR not VARCHAR:
+    @Column(name = "currency", columnDefinition = "CHAR(3)", nullable = false)
+    private String currency;
 
     @Column(name = "deleted_at")
     private Instant deletedAt;

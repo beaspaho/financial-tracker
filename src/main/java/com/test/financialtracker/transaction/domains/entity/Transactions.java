@@ -13,7 +13,7 @@ import java.util.UUID;
 //TODO:Reeval index
 @Entity
 @Table(
-        name = "fn_trc_transactions",
+        name = "fn_trn_transactions",
         indexes = {
                 @Index(name = "idx_tx_source_timestamp",  columnList = "source_account_id, timestamp DESC"),
                 @Index(name = "idx_tx_dest_timestamp",    columnList = "destination_account_id, timestamp DESC"),

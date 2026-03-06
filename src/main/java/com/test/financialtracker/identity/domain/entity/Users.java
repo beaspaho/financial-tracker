@@ -11,7 +11,7 @@ import java.util.UUID;
 //Naming convention per table
 @Entity
 @Table(
-        name = "fn_trc_users",
+        name = "fn_trn_users",
         uniqueConstraints = {
                 @UniqueConstraint(name = "uq_users_keycloak_id", columnNames = "keycloak_id"),
                 @UniqueConstraint(name = "uq_users_email",       columnNames = "email")
