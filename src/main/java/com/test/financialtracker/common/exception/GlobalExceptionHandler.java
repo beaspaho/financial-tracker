@@ -44,7 +44,7 @@ public class GlobalExceptionHandler {
     /** 401 — Keycloak authentication failure */
     @ExceptionHandler(IdentityProviderException.class)
     public ResponseEntity<ApiError> handleIdpError(
-            IdentityProviderPort.IdentityProviderException ex
+            IdentityProviderException ex
     ) {
         HttpStatus status = ex.getStatusCode() == 401
                 ? HttpStatus.UNAUTHORIZED

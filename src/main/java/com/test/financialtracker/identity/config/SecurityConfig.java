@@ -13,6 +13,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.session.DisableEncodeUrlFilter;
 import org.springframework.web.client.RestTemplate;
 
 @Configuration
@@ -40,8 +41,8 @@ public class SecurityConfig  {
 
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
 
-                // Rate limiting runs before authentication
-                .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
+                // Rate limiting runs before anything
+                .addFilterBefore(rateLimitingFilter, DisableEncodeUrlFilter.class)
                 .addFilterAfter(tokenIntrospectionFilter, RateLimitingFilter.class)
         ;
 

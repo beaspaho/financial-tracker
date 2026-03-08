@@ -12,7 +12,6 @@ import com.test.financialtracker.identity.ports.IdentityProviderPort;
 import com.test.financialtracker.identity.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.web.authentication.Http403ForbiddenEntryPoint;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,7 +32,6 @@ public class DefaultAuthService implements AuthService {
     @Transactional
     @Override
     public AuthResponse register(RegisterRequest request, User.Role userRole) {
-//TODO:Decide fail or return response bc what if net exception and the user registered
         if (userRepository.existsByEmail(request.email())) {
             log.warn("Registration attempt for existing email={}", request.email());
             throw new ConflictException("Email already registered");
@@ -52,7 +50,7 @@ public class DefaultAuthService implements AuthService {
                 )
         );
 
-        User newUser = User.newUser(userId, keycloakId, request.email());
+        User newUser = User.newUser(userId, keycloakId, request.email(), userRole);
         newUser = userMapper.toDomain(userRepository.save(userMapper.toEntity(newUser)));
 
         log.info("User registered successfully userId={} email={}", newUser.getId(), request.email());

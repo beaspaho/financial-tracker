@@ -212,7 +212,7 @@ public class TransactionService {
 
         boolean hasMore = items.size() == effectivePageSize;
         Instant nextCursor = hasMore
-                ? items.get(items.size() - 1).timestamp()  // timestamp of last item
+                ? items.getLast().timestamp()  // timestamp of last item
                 : null;
 
         return new TransactionHistoryResponse(items, nextCursor, hasMore);

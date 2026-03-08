@@ -21,13 +21,12 @@ public class User {
         ADMIN
     }
 
-
-    public static User newUser(UUID userId, String keycloakId, String email) {
+    public static User newUser(UUID userId, String keycloakId, String email, Role role) {
         return User.builder()
                 .id(userId)
                 .keycloakId(keycloakId)
                 .email(email)
-                .role(Role.USER)
+                .role(role)
                 .build();
     }
 

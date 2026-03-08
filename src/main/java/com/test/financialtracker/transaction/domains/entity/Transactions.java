@@ -10,7 +10,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-//TODO:Reeval index
 @Entity
 @Table(
         name = "fn_trn_transactions",

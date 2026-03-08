@@ -22,7 +22,7 @@ public class AdminService {
 
     private final AccountRepository accountRepository;
     private final AccountMapper accountMapper;
-    //TODO:NOT like this
+
     private static final int DEFAULT_PAGE_SIZE = 20;
     private static final int MAX_PAGE_SIZE = 100;
 

@@ -2,7 +2,6 @@ package com.test.financialtracker.identity.ports;
 
 
 import com.test.financialtracker.identity.domain.models.User;
-import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.util.UUID;
 
@@ -13,7 +12,7 @@ public interface IdentityProviderPort {
      *
      * @param request contains all fields needed for Keycloak user creation
      * @return the Keycloak "sub" (subject UUID) for the created user
-     * @throws IdentityProviderException if Keycloak returns a non-2xx response
+     * @throws com.test.financialtracker.common.exception.IdentityProviderException if Keycloak returns a non-2xx response
      */
     String registerUser(UserRegistrationRequest request);
 
@@ -51,18 +50,11 @@ public interface IdentityProviderPort {
      * Uses the Resource Owner Password Credentials (ROPC) grant.
      *
      * @return TokenResponse containing access_token, refresh_token, expires_in
-     * @throws IdentityProviderException on invalid credentials or Keycloak error
+     * @throws com.test.financialtracker.common.exception.IdentityProviderException on invalid credentials or Keycloak error
      */
     TokenResponse authenticate(String email, String password);
 
     void logout(String keycloakUserId);
-
-    /**
-     * Deletes a user from Keycloak by their subject ID.
-     * Called on account deletion to keep IdP and local DB in sync.
-     */
-    //TODO:Decide approach
-    void deleteUser(String keycloakId);
 
     boolean isSessionValid(String token);
 
@@ -74,16 +66,4 @@ public interface IdentityProviderPort {
     ) {
     }
 
-    class IdentityProviderException extends RuntimeException {
-        private final int statusCode;
-
-        public IdentityProviderException(String message, int statusCode) {
-            super(message);
-            this.statusCode = statusCode;
-        }
-
-        public int getStatusCode() {
-            return statusCode;
-        }
-    }
 }
