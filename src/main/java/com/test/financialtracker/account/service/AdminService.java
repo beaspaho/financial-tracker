@@ -22,10 +22,9 @@ public class AdminService {
 
     private final AccountRepository accountRepository;
     private final AccountMapper accountMapper;
-//TODO:NOT like this
+    //TODO:NOT like this
     private static final int DEFAULT_PAGE_SIZE = 20;
-    private static final int MAX_PAGE_SIZE     = 100;
-
+    private static final int MAX_PAGE_SIZE = 100;
 
 
     /**
@@ -35,13 +34,13 @@ public class AdminService {
      * @param pageSize number of records per page (max 100)
      */
     @Transactional(readOnly = true)
-    public PagedResponse<AdminAccountResponse> listAllAccounts(int page, int pageSize) {
-        int effectiveSize   = Math.min(Math.max(pageSize, 1), MAX_PAGE_SIZE);
-        int offset          = page * effectiveSize;
-        long total          = accountRepository.countAllForAdmin();
+    public PagedResponse<AdminAccountResponse> listAllAccounts(int page, int pageSize, String filterAccount) {
+        int effectiveSize = Math.min(Math.max(pageSize, 1), MAX_PAGE_SIZE);
+        int offset = page * effectiveSize;
+        long total = accountRepository.countAllForAdmin();
 
         List<AdminAccountResponse> items = accountRepository
-                .findAllForAdmin(effectiveSize, offset)
+                .findAllForAdmin(effectiveSize, offset, filterAccount)
                 .stream()
                 .map(accountMapper::toDomain)
                 .map(AdminAccountResponse::from)
@@ -52,10 +51,9 @@ public class AdminService {
     }
 
 
-
     @Transactional(readOnly = true)
     public AdminAccountResponse getAccountById(UUID accountId) {
-  Account account = accountRepository.findById(accountId)
+        Account account = accountRepository.findById(accountId)
                 .map(accountMapper::toDomain)
                 .orElseThrow(() -> new ResourceNotFoundException("Account", accountId));
 
@@ -65,7 +63,7 @@ public class AdminService {
 
     /**
      * Returns all ACTIVE accounts for a specific user.
-
+     * <p>
      * Soft-deleted accounts are excluded (soft-delete filter applies).
      */
     @Transactional(readOnly = true)

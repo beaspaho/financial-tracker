@@ -35,11 +35,11 @@ public class TransactionService {
 
 
     @Transactional
-    public TransactionResponse deposit(DepositRequest request, UUID callerId) {
+    public TransactionResponse deposit(DepositRequest request, UUID callerId, UUID idempotencyKey) {
 
-        var existing = txRepo.findByReferenceId(request.depositKey());
+        var existing = txRepo.findByReferenceId(idempotencyKey);
         if (existing.isPresent()) {
-            log.info("Idempotent deposit callerId={} referenceId={}", callerId, request.depositKey());
+            log.info("Idempotent deposit callerId={} referenceId={}", callerId, idempotencyKey);
             throw new DuplicateTransactionException(txMapper.toDomain(existing.get()));
         }
 
@@ -51,24 +51,24 @@ public class TransactionService {
 
         accountPort.save(account);
         Transaction tx = Transaction.deposit(
-                account.getId(), request.amount(), request.depositKey()
+                account.getId(), request.amount(), idempotencyKey
         );
         Transaction saved = txMapper.toDomain(txRepo.save(txMapper.toEntity(tx)));
 
         log.info("Deposit processed callerId={} accountId={} amount={} referenceId={}",
-                callerId, account.getId(), request.amount(), request.depositKey());
+                callerId, account.getId(), request.amount(), idempotencyKey);
 
         return TransactionResponse.from(saved);
     }
 
 
     @Transactional
-    public TransactionResponse withdraw(WithdrawRequest request, UUID callerId) {
+    public TransactionResponse withdraw(WithdrawRequest request, UUID callerId, UUID idempotencyKey) {
 
         // ── 1. Idempotency ──────────────────────────────────────────
-        var existing = txRepo.findByReferenceId(request.idempotencyKey());
+        var existing = txRepo.findByReferenceId(idempotencyKey);
         if (existing.isPresent()) {
-            log.info("Idempotent withdrawal callerId={} referenceId={}", callerId, request.idempotencyKey());
+            log.info("Idempotent withdrawal callerId={} referenceId={}", callerId, idempotencyKey);
             throw new DuplicateTransactionException(txMapper.toDomain(existing.get()));
         }
 
@@ -86,27 +86,27 @@ public class TransactionService {
 
         accountPort.save(account);
         Transaction tx = Transaction.withdrawal(
-                account.getId(), request.amount(), request.idempotencyKey()
+                account.getId(), request.amount(), idempotencyKey
         );
         Transaction saved = txMapper.toDomain(txRepo.save(txMapper.toEntity(tx)));
 
         log.info("Withdrawal processed callerId={} accountId={} amount={} referenceId={}",
-                callerId, account.getId(), request.amount(), request.idempotencyKey());
+                callerId, account.getId(), request.amount(), idempotencyKey);
 
         return TransactionResponse.from(saved);
     }
 
 
     @Transactional
-    public TransactionResponse transfer(TransferRequest request, UUID callerId) {
+    public TransactionResponse transfer(TransferRequest request, UUID callerId, UUID idempotencyKey) {
 
         if (request.sourceId().equals(request.destinationId())) {
             throw new BusinessRuleException("Source and destination accounts must be different");
         }
 
-        var existing = txRepo.findByReferenceId(request.idempotencyKey());
+        var existing = txRepo.findByReferenceId(idempotencyKey);
         if (existing.isPresent()) {
-            log.info("Idempotent transfer callerId={} referenceId={}", callerId, request.idempotencyKey());
+            log.info("Idempotent transfer callerId={} referenceId={}", callerId, idempotencyKey);
             throw new DuplicateTransactionException(txMapper.toDomain(existing.get()));
         }
         boolean srcFirst = request.sourceId().compareTo(request.destinationId()) < 0;
@@ -137,13 +137,13 @@ public class TransactionService {
 
         Transaction tx = Transaction.transfer(
                 source.getId(), destination.getId(),
-                request.amount(), request.idempotencyKey()
+                request.amount(), idempotencyKey
         );
         Transaction saved = txMapper.toDomain(txRepo.save(txMapper.toEntity(tx)));
 
         log.info("Transfer processed callerId={} srcId={} destId={} amount={} referenceId={}",
                 callerId, source.getId(), destination.getId(),
-                request.amount(), request.idempotencyKey());
+                request.amount(), idempotencyKey);
 
         return TransactionResponse.from(saved);
     }
@@ -179,8 +179,9 @@ public class TransactionService {
             throw new BusinessRuleException("'from' date must be before 'to' date");
         }
 
-        Instant effectiveTo = to != null ? to : null;
-        Instant effectiveFrom = from != null ? from : null;
+        Instant effectiveTo = to;
+        Instant effectiveFrom = from;
+        Instant effectiveCursor = cursor;
         if (effectiveFrom == null && effectiveTo == null) {
             effectiveFrom = Instant.now().minus(java.time.Duration.ofDays(30));
         }
@@ -190,7 +191,7 @@ public class TransactionService {
                 : DEFAULT_PAGE_SIZE;
 
         List<TransactionResponse> items = txRepo
-                .findHistory(accountId, type, effectiveFrom, effectiveTo, cursor, effectivePageSize)
+                .findHistory(accountId, type != null ? type.name() : null, effectiveFrom, effectiveTo, cursor, effectivePageSize)
                 .stream()
                 .map(txMapper::toDomain)
                 .map(TransactionResponse::from)

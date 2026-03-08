@@ -22,6 +22,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class TransactionController {
 
+    private static final String X_IDEMPOTENCY_KEY = "X-Idempotency-Key";
     private final TransactionService txService;
     private final SecurityContextHelper securityContextHelper;
 
@@ -36,11 +37,12 @@ public class TransactionController {
     @PostMapping("/deposit")
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<TransactionResponse> deposit(
-            @Valid @RequestBody DepositRequest request
+            @Valid @RequestBody DepositRequest request,
+            @RequestHeader(X_IDEMPOTENCY_KEY) UUID idempotencyKey
     ) {
         UUID callerId = securityContextHelper.getAuthenticatedUserId();
         try {
-            TransactionResponse response = txService.deposit(request, callerId);
+            TransactionResponse response = txService.deposit(request, callerId, idempotencyKey);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (DuplicateTransactionException e) {
             // Idempotent replay — return original result as 200 (not 201)
@@ -58,11 +60,12 @@ public class TransactionController {
     @PostMapping("/withdraw")
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<TransactionResponse> withdraw(
-            @Valid @RequestBody WithdrawRequest request
+            @Valid @RequestBody WithdrawRequest request,
+            @RequestHeader(X_IDEMPOTENCY_KEY) UUID idempotencyKey
     ) {
         UUID callerId = securityContextHelper.getAuthenticatedUserId();
         try {
-            TransactionResponse response = txService.withdraw(request, callerId);
+            TransactionResponse response = txService.withdraw(request, callerId, idempotencyKey);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (DuplicateTransactionException e) {
             return ResponseEntity.ok(TransactionResponse.from(e.getExisting()));
@@ -79,11 +82,12 @@ public class TransactionController {
     @PostMapping("/transfer")
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<TransactionResponse> transfer(
-            @Valid @RequestBody TransferRequest request
+            @Valid @RequestBody TransferRequest request,
+            @RequestHeader(X_IDEMPOTENCY_KEY) UUID idempotencyKey
     ) {
         UUID callerId = securityContextHelper.getAuthenticatedUserId();
         try {
-            TransactionResponse response = txService.transfer(request, callerId);
+            TransactionResponse response = txService.transfer(request, callerId, idempotencyKey);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (DuplicateTransactionException e) {
             return ResponseEntity.ok(TransactionResponse.from(e.getExisting()));

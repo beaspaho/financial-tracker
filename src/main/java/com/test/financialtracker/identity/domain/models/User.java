@@ -22,22 +22,13 @@ public class User {
     }
 
 
-    public static User newUser(String keycloakId, String email) {
+    public static User newUser(UUID userId, String keycloakId, String email) {
         return User.builder()
-                .id(UUID.randomUUID())
+                .id(userId)
                 .keycloakId(keycloakId)
                 .email(email)
                 .role(Role.USER)
                 .build();
     }
 
-//TODO:Implement or not decision
-    public static User newAdmin(String keycloakId, String email) {
-        return User.builder()
-                .id(UUID.randomUUID())
-                .keycloakId(keycloakId)
-                .email(email)
-                .role(Role.ADMIN)
-                .build();
-    }
 }

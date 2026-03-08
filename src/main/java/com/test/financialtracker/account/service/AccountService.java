@@ -86,14 +86,12 @@ public class AccountService implements AccountPort {
 
     /**
      * Soft-deletes an account.
-     *
      * Business rules:
      *   1. Account must belong to the caller
      *   2. Balance must be exactly 0.00 — user must withdraw first
-     *
-     * The account remains in the DB with deletedAt set. bc cloded equivaleny
+     * The account remains in the DB with deletedAt set.
      * Transaction history is preserved for audit/compliance.
-     * @SQLRestriction on AccountEntity makes it invisible in all user queries.
+     * {@link org.hibernate.annotations.SQLRestriction} on AccountEntity makes it invisible in all user queries.
      */
     @Transactional
     public void delete(UUID accountId, UUID callerId) {

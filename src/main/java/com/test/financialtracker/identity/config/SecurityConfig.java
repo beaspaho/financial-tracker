@@ -1,5 +1,6 @@
 package com.test.financialtracker.identity.config;
 
+import com.test.financialtracker.identity.domain.models.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,6 +22,7 @@ import org.springframework.web.client.RestTemplate;
 public class SecurityConfig  {
 
     private final RateLimitingFilter rateLimitingFilter;
+    private final TokenIntrospectionFilter tokenIntrospectionFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -28,16 +30,20 @@ public class SecurityConfig  {
 
                 .csrf(AbstractHttpConfigurer::disable)
 
-                .authorizeHttpRequests(auth -> auth.requestMatchers(HttpMethod.POST, "/api/v1/auth/register").permitAll().requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
+                .authorizeHttpRequests(auth ->
+                        auth.requestMatchers(HttpMethod.POST, "/api/v1/auth/register")
+                                .permitAll().requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
 
-                .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/v1/admin/**").hasRole(User.Role.ADMIN.name())
 
                 .anyRequest().authenticated())
 
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
 
                 // Rate limiting runs before authentication
-                .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(tokenIntrospectionFilter, RateLimitingFilter.class)
+        ;
 
         return http.build();
     }
@@ -56,8 +62,4 @@ public class SecurityConfig  {
         return converter;
     }
 
-    @Bean
-    public RestTemplate restTemplate() {
-        return new RestTemplate();
-    }
 }
