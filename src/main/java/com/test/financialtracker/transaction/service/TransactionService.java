@@ -3,10 +3,7 @@ package com.test.financialtracker.transaction.service;
 
 import com.test.financialtracker.account.domain.models.Account;
 import com.test.financialtracker.account.repository.AccountPort;
-import com.test.financialtracker.common.exception.BusinessRuleException;
-import com.test.financialtracker.common.exception.DuplicateTransactionException;
-import com.test.financialtracker.common.exception.InsufficientFundsException;
-import com.test.financialtracker.common.exception.ResourceNotFoundException;
+import com.test.financialtracker.common.exception.*;
 import com.test.financialtracker.transaction.domains.models.*;
 import com.test.financialtracker.transaction.domains.tranformers.TransactionMapper;
 import com.test.financialtracker.transaction.repository.TransactionRepository;
@@ -45,7 +42,7 @@ public class TransactionService {
 
         Account account = accountPort.findByIdWithLock(request.accountId());
 
-        assertOwnership(account, callerId, "deposit");
+        assertOwnership(account, callerId, "Deposit Account");
 
         account.credit(request.amount());
 
@@ -74,7 +71,7 @@ public class TransactionService {
 
         Account account = accountPort.findByIdWithLock(request.accountId());
 
-        assertOwnership(account, callerId, "withdrawal");
+        assertOwnership(account, callerId, "Withdrawal Account");
 
         try {
             account.debit(request.amount());
@@ -109,19 +106,35 @@ public class TransactionService {
             log.info("Idempotent transfer callerId={} referenceId={}", callerId, idempotencyKey);
             throw new DuplicateTransactionException(txMapper.toDomain(existing.get()));
         }
-        boolean srcFirst = request.sourceId().compareTo(request.destinationId()) < 0;
 
-        UUID firstLockId = srcFirst ? request.sourceId() : request.destinationId();
-        UUID secondLockId = srcFirst ? request.destinationId() : request.sourceId();
+        /*
+         * DEADLOCK PREVENTION:
+         *   If User A transfers to B while User B transfers to A simultaneously,
+         *   both threads try to lock both rows. Without ordering, each thread
+         *   holds one lock and waits for the other → deadlock.
+         *   By always locking the lower UUID first, both threads acquire
+         *   locks in the same order, so one waits while the other completes.
+         */
 
-        Account first = accountPort.findByIdWithLock(firstLockId);
-        Account second = accountPort.findByIdWithLock(secondLockId);
+        // ID A: source
+        // ID B: destination
+        // B < A
+        // srcFirst = false
+        // firstLockId = B
+        //
+        Account source;
+        Account destination;
 
-        Account source = first.getId().equals(request.sourceId()) ? first : second;
-        Account destination = first.getId().equals(request.sourceId()) ? second : first;
+        if (request.sourceId().compareTo(request.destinationId()) < 0) {
+            source = accountPort.findByIdWithLock(request.sourceId());
+            destination = accountPort.findByIdWithLock(request.destinationId());
+        } else {
+            destination = accountPort.findByIdWithLock(request.destinationId());
+            source = accountPort.findByIdWithLock(request.sourceId());
+        }
 
-        assertOwnership(source, callerId, "transfer source");
-        assertOwnership(destination, callerId, "transfer destination");
+        assertOwnership(source, callerId, "Source Account");
+        assertOwnership(destination, callerId, "Destination Account");
 
         try {
             source.debit(request.amount());
@@ -173,7 +186,7 @@ public class TransactionService {
             UUID callerId
     ) {
         Account account = accountPort.findById(accountId);
-        assertOwnership(account, callerId, "history query");
+        assertOwnership(account, callerId, "History Account");
 
         if (from != null && to != null && from.isAfter(to)) {
             throw new BusinessRuleException("'from' date must be before 'to' date");
@@ -214,7 +227,7 @@ public class TransactionService {
             log.warn("Ownership violation callerId={} accountId={} context={}",
                     callerId, account.getId(), context);
             throw new AccessDeniedException(
-                    "Account does not belong to the authenticated user"
+                   context + " does not belong to the authenticated user"
             );
         }
         if (!account.isActive()) {

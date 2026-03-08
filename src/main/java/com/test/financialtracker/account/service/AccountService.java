@@ -152,10 +152,9 @@ public class AccountService implements AccountPort {
 
 
     private Account loadAndAssertOwnership(UUID accountId, UUID callerId, String context) {
-        Accounts entity = accountRepository.findById(accountId)
+        Account account = accountRepository.findById(accountId)
+                .map(this.accountMapper::toDomain)
                 .orElseThrow(() -> new ResourceNotFoundException("Account", accountId));
-
-        Account account = accountMapper.toDomain(entity);
 
         if (!account.isOwnedBy(callerId)) {
             log.warn("Ownership violation callerId={} accountId={} context={}",

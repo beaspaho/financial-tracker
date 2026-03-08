@@ -32,7 +32,7 @@ public class GlobalExceptionHandler {
     /** 403 — authenticated but not authorized */
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiError> handleAccessDenied(AccessDeniedException ex) {
-        return error(HttpStatus.FORBIDDEN, "Access denied");
+        return error(HttpStatus.FORBIDDEN, ex.getMessage());
     }
 
     /** 422 — business rule violation (insufficient funds, overdraft, etc.) */
