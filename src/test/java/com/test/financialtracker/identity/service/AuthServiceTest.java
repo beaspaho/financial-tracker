@@ -1,6 +1,7 @@
 package com.test.financialtracker.identity.service;
 
 import com.test.financialtracker.common.exception.ConflictException;
+import com.test.financialtracker.common.exception.IdentityProviderException;
 import com.test.financialtracker.common.exception.UserIdentityUnknownException;
 import com.test.financialtracker.identity.domain.entity.Users;
 import com.test.financialtracker.identity.domain.models.AuthResponse;
@@ -24,24 +25,27 @@ import java.util.Base64;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
 
-    @Mock UserRepository userRepository;
-    @Mock IdentityProviderPort identityProvider;
+    @Mock
+    UserRepository userRepository;
+    @Mock
+    IdentityProviderPort identityProvider;
 
     // Real mapper — no external deps, mapping logic is part of what we verify
     final UserMapper userMapper = new UserMapper();
 
     DefaultAuthService service;
 
-    UUID userId     = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
     String keycloakId = UUID.randomUUID().toString();
-    String email    = "user@example.com";
+    String email = "user@example.com";
 
     Users savedEntity;
 
