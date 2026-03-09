@@ -36,7 +36,7 @@ A personal finance tracking REST API built with Spring Boot 3.4.3 and Java 21. S
 
 ### 1. Start external services
 
-The easiest way is to use the provided Docker Compose file which starts PostgreSQL, Keycloak, and Redis:
+The easiest way is to use the provided Docker Compose file which starts PostgreSQL, Keycloak:
 
 ```bash
 cd .devcontainers
@@ -117,7 +117,7 @@ ports/         → REST controllers (inbound adapters)
 service/       → Business / application logic
 repository/    → JPA repositories
 domain/
-  models/      → Pure domain objects (no JPA annotations)
+  models/      → Pure domain objects 
   entity/      → JPA entities
   transformers/ → Mappers between domain ↔ entity
 ```
