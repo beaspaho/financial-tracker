@@ -19,9 +19,6 @@ public record TransferRequest(
         @NotNull(message = "Amount is required")
         @DecimalMin(value = "0.0001", message = "Amount must be greater than zero")
         @Digits(integer = 15, fraction = 4, message = "Amount format invalid (max 15 digits, 4 decimal places)")
-        BigDecimal amount,
-
-        @NotNull(message = "Idempotency key is required")
-        UUID idempotencyKey
+        BigDecimal amount
 
 ) {}

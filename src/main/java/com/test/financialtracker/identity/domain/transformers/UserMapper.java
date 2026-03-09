@@ -13,7 +13,7 @@ public class UserMapper {
                 .id(entity.getId())
                 .keycloakId(entity.getKeycloakId())
                 .email(entity.getEmail())
-                //.role(entity.getRole())
+                .role(entity.getRole())
                 .build();
     }
 
@@ -22,7 +22,7 @@ public class UserMapper {
                 .id(domain.getId())
                 .keycloakId(domain.getKeycloakId())
                 .email(domain.getEmail())
-              //  .role(domain.getRole())
+                .role(domain.getRole())
                 .build();
     }
 }

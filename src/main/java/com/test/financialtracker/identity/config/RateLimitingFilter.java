@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -18,26 +19,26 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Rate limiting on /auth/** endpoints
- *
- * Strategy: 10 requests per minute per IP address.//TODO:Evaluation of this number
+ * <pr>
+ * Strategy: 10 requests per minute per IP address.
  * Buckets are per-IP and stored in a ConcurrentHashMap.
-
+ * <p>
  * Returns 429 Too Many Requests with Retry-After header on breach.
  */
 @Slf4j
 @Component
 public class RateLimitingFilter extends OncePerRequestFilter {
-//TODO:Param
-    private static final int    REQUESTS_PER_MINUTE = 10;
-    private static final String AUTH_PATH_PREFIX    = "/api/v1/auth";
+
+    private static final int REQUESTS_PER_MINUTE = 10;
+    private static final String AUTH_PATH_PREFIX = "/api/v1/auth";
 
     private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
 
     @Override
     protected void doFilterInternal(
-            HttpServletRequest  request,
-            HttpServletResponse response,
-            FilterChain         chain
+            HttpServletRequest request,
+            @NonNull HttpServletResponse response,
+            @NonNull FilterChain chain
     ) throws ServletException, IOException {
 
         if (!request.getRequestURI().startsWith(AUTH_PATH_PREFIX)) {
@@ -45,7 +46,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             return;
         }
 
-        String ip     = resolveClientIp(request);
+        String ip = resolveClientIp(request);
         Bucket bucket = buckets.computeIfAbsent(ip, this::newBucket);
 
         if (bucket.tryConsume(1)) {
@@ -56,23 +57,24 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.setHeader("Retry-After", "60");
             response.getWriter().write("""
-                {
-                  "status": 429,
-                  "error": "Too Many Requests",
-                  "message": "Rate limit exceeded. Try again in 60 seconds."
-                }
-                """);
+                    {
+                      "status": 429,
+                      "error": "Too Many Requests",
+                      "message": "Rate limit exceeded. Try again in 60 seconds."
+                    }
+                    """);
         }
     }
 
     private Bucket newBucket(String ip) {
         return Bucket.builder()
-                .addLimit(Bandwidth.simple(REQUESTS_PER_MINUTE, Duration.ofMinutes(1)))
+                .addLimit(Bandwidth.builder()
+                        .capacity(REQUESTS_PER_MINUTE).refillIntervally(REQUESTS_PER_MINUTE, Duration.ofMinutes(1))
+                        .build())
                 .build();
     }
 
     /**
-     * //TODO:if time-->Docker nginx
      * Respects X-Forwarded-For for clients behind a reverse proxy (nginx/load balancer).
      * Falls back to getRemoteAddr() for direct connections.
      */

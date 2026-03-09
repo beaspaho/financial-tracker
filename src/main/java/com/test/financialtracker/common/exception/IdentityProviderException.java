@@ -1,5 +1,7 @@
 package com.test.financialtracker.common.exception;
 
+import com.test.financialtracker.identity.ports.IdentityProviderPort;
+
 /**
  * Thrown by KeycloakAdapter when the Identity Provider returns an error.
  *

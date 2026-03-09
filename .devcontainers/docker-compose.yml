@@ -1,0 +1,113 @@
+version: "3.9"
+
+name: financial-tracker-compose
+
+services:
+
+  # ──────────────────────────────────────────────────────────
+  # POSTGRES
+  # ──────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: finance-tracker-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       financedb
+      POSTGRES_USER:     app
+      POSTGRES_PASSWORD: secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init-schemas.sql:/docker-entrypoint-initdb.d/init-schemas.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d financedb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - finance-net
+
+  # ──────────────────────────────────────────────────────────
+  # KEYCLOAK
+  # ──────────────────────────────────────────────────────────
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.5
+    container_name: finance-tracker-keycloak
+    restart: unless-stopped
+    command:
+      - start-dev
+      - --import-realm
+    environment:
+      KEYCLOAK_ADMIN:           admin
+      KEYCLOAK_ADMIN_PASSWORD:  admin
+      KC_DB:                    postgres
+      KC_DB_URL:                jdbc:postgresql://postgres:5432/financedb
+      KC_DB_USERNAME:           app
+      KC_DB_PASSWORD:           secret
+      KC_HTTP_PORT:             8180
+      KC_HOSTNAME_STRICT:       "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+    ports:
+      - "8180:8180"
+    volumes:
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      # /realms/master is available as soon as Keycloak finishes booting.
+      # We use wget because curl is not in the Keycloak 24 image.
+      # start_period=120s absorbs realm import time on first boot.
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8180/realms/master > /dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 20          # 20 × 15s = 300s max after start_period
+      start_period: 120s
+    networks:
+      - finance-net
+
+  # ──────────────────────────────────────────────────────────
+  # APP
+  # ──────────────────────────────────────────────────────────
+  app:
+    build:
+      context: ../
+      dockerfile: Dockerfile
+    container_name: finance-tracker-app
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL:        jdbc:postgresql://postgres:5432/financedb
+      DB_USERNAME:                  app
+      DB_PASSWORD:                  secret
+      KEYCLOAK_ISSUER_URI:          http://keycloak:8180/realms/finance
+      KEYCLOAK_SERVER_URL:          http://keycloak:8180
+      KEYCLOAK_REALM:               finance
+      KEYCLOAK_ADMIN_CLIENT_ID:     finance-admin
+      KEYCLOAK_ADMIN_CLIENT_SECRET: Njm7DHevaazTHjfjtPrLeo2OhKeYHld1
+      KEYCLOAK_APP_CLIENT_ID:       finance-app
+      SPRING_PROFILES_ACTIVE:       docker
+      JAVA_OPTS:                    "-Xms256m -Xmx512m"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+     
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - finance-net
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  finance-net:
+    driver: bridge

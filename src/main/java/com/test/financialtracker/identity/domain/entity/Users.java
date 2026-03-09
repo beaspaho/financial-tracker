@@ -7,14 +7,13 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.UUID;
-//TODO:SCRIPT FLYWAY
-//Naming convention per table
+
 @Entity
 @Table(
-        name = "fn_trc_users",
+        name = "fn_trn_users",
         uniqueConstraints = {
                 @UniqueConstraint(name = "uq_users_keycloak_id", columnNames = "keycloak_id"),
-                @UniqueConstraint(name = "uq_users_email",       columnNames = "email")
+                @UniqueConstraint(name = "uq_users_email", columnNames = "email")
         }
 )
 @Getter
@@ -39,8 +38,6 @@ public class Users extends BaseEntity {
     @Column(nullable = false)
     private String email;
 
-    /**TODO:Improve
-     */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private User.Role role;

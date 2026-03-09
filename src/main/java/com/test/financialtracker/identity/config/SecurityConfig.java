@@ -1,5 +1,6 @@
 package com.test.financialtracker.identity.config;
 
+import com.test.financialtracker.identity.domain.models.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -10,18 +11,19 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
-import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.session.DisableEncodeUrlFilter;
 import org.springframework.web.client.RestTemplate;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity               // enables @PreAuthorize on service methods
 @RequiredArgsConstructor
-public class SecurityConfig extends AbstractHttpConfigurer {
+public class SecurityConfig  {
 
     private final RateLimitingFilter rateLimitingFilter;
+    private final TokenIntrospectionFilter tokenIntrospectionFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -29,16 +31,20 @@ public class SecurityConfig extends AbstractHttpConfigurer {
 
                 .csrf(AbstractHttpConfigurer::disable)
 
-                .authorizeHttpRequests(auth -> auth.requestMatchers(HttpMethod.POST, "/api/v1/auth/register").permitAll().requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
+                .authorizeHttpRequests(auth ->
+                        auth.requestMatchers(HttpMethod.POST, "/api/v1/auth/register")
+                                .permitAll().requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
 
-                .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/v1/admin/**").hasRole(User.Role.ADMIN.name())
 
                 .anyRequest().authenticated())
 
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
 
-                // Rate limiting runs before authentication
-                .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class);
+                // Rate limiting runs before anything
+                .addFilterBefore(rateLimitingFilter, DisableEncodeUrlFilter.class)
+                .addFilterAfter(tokenIntrospectionFilter, RateLimitingFilter.class)
+        ;
 
         return http.build();
     }
@@ -52,17 +58,9 @@ public class SecurityConfig extends AbstractHttpConfigurer {
      */
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
-        JwtGrantedAuthoritiesConverter rolesConverter = new JwtGrantedAuthoritiesConverter();
-        rolesConverter.setAuthoritiesClaimName("realm_access.roles");
-        rolesConverter.setAuthorityPrefix("ROLE_");
-
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-        converter.setJwtGrantedAuthoritiesConverter(rolesConverter);
+        converter.setJwtGrantedAuthoritiesConverter(new JwtConverter());
         return converter;
     }
 
-    @Bean
-    public RestTemplate restTemplate() {
-        return new RestTemplate();
-    }
 }

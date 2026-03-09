@@ -30,13 +30,21 @@ public interface AccountRepository extends JpaRepository<Accounts, UUID> {
 
 
     @Query(
-            value  = "SELECT * FROM accounts ORDER BY user_id, created_at LIMIT :size OFFSET :offset",
+            value  = "SELECT * FROM fn_trn_accounts " +
+                    "WHERE (:filterAccount = 'ALL' " +
+                    "OR (:filterAccount = 'ACTIVE' AND deleted_at IS NULL) " +
+                    "OR (:filterAccount = 'DELETED' AND deleted_at IS NOT NULL)) " +
+                    "ORDER BY user_id, created_at LIMIT :size OFFSET :offset",
             nativeQuery = true
     )
-    List<Accounts> findAllForAdmin(@Param("size") int size, @Param("offset") int offset);
+    List<Accounts> findAllForAdmin(
+            @Param("size") int size,
+            @Param("offset") int offset,
+            @Param("filterAccount") String filterAccount
+    );
 
 
-    @Query(value = "SELECT COUNT(*) FROM accounts", nativeQuery = true)
+    @Query(value = "SELECT COUNT(*) FROM fn_trn_accounts", nativeQuery = true)
     long countAllForAdmin();
 
 

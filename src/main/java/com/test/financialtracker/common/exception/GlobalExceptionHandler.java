@@ -32,7 +32,7 @@ public class GlobalExceptionHandler {
     /** 403 — authenticated but not authorized */
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiError> handleAccessDenied(AccessDeniedException ex) {
-        return error(HttpStatus.FORBIDDEN, "Access denied");
+        return error(HttpStatus.FORBIDDEN, ex.getMessage());
     }
 
     /** 422 — business rule violation (insufficient funds, overdraft, etc.) */
@@ -44,7 +44,7 @@ public class GlobalExceptionHandler {
     /** 401 — Keycloak authentication failure */
     @ExceptionHandler(IdentityProviderException.class)
     public ResponseEntity<ApiError> handleIdpError(
-            IdentityProviderPort.IdentityProviderException ex
+            IdentityProviderException ex
     ) {
         HttpStatus status = ex.getStatusCode() == 401
                 ? HttpStatus.UNAUTHORIZED

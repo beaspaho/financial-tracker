@@ -25,13 +25,13 @@ import java.util.UUID;
  * Also implements AccountPort: the interface the transaction module uses
  * to read/update accounts without importing AccountRepository directly.
  * This is the key to module isolation.
-
+ * <p>
  * RULES:
- *   - CREATE:   authenticated user only, initial balance = 0
- *   - READ:     owner only — a user can never see another user's accounts
- *   - UPDATE:   owner only — only name is editable
- *   - DELETE:   owner only — soft delete, rejected if balance > 0
- *   - ADMIN:    separate AdminService handles admin reads (no writes)
+ * - CREATE:   authenticated user only, initial balance = 0
+ * - READ:     owner only — a user can never see another user's accounts
+ * - UPDATE:   owner only — only name is editable
+ * - DELETE:   owner only — soft delete, rejected if balance > 0
+ * - ADMIN:    separate AdminService handles admin reads (no writes)
  */
 @Slf4j
 @Service
@@ -86,14 +86,12 @@ public class AccountService implements AccountPort {
 
     /**
      * Soft-deletes an account.
-     *
      * Business rules:
-     *   1. Account must belong to the caller
-     *   2. Balance must be exactly 0.00 — user must withdraw first
-     *
-     * The account remains in the DB with deletedAt set. bc cloded equivaleny
+     * 1. Account must belong to the caller
+     * 2. Balance must be exactly 0.00 — user must withdraw first
+     * The account remains in the DB with deletedAt set.
      * Transaction history is preserved for audit/compliance.
-     * @SQLRestriction on AccountEntity makes it invisible in all user queries.
+     * {@link org.hibernate.annotations.SQLRestriction} on AccountEntity makes it invisible in all user queries.
      */
     @Transactional
     public void delete(UUID accountId, UUID callerId) {
@@ -147,17 +145,17 @@ public class AccountService implements AccountPort {
     @Override
     @Transactional
     public void save(Account account) {
-        accountRepository.findById(account.getId()).ifPresent(entity -> {
+        accountRepository.findById(account.getId())
+                .ifPresent(entity -> {
             accountMapper.updateEntity(entity, account);
         });
     }
 
 
     private Account loadAndAssertOwnership(UUID accountId, UUID callerId, String context) {
-        Accounts entity = accountRepository.findById(accountId)
+        Account account = accountRepository.findById(accountId)
+                .map(this.accountMapper::toDomain)
                 .orElseThrow(() -> new ResourceNotFoundException("Account", accountId));
-
-        Account account = accountMapper.toDomain(entity);
 
         if (!account.isOwnedBy(callerId)) {
             log.warn("Ownership violation callerId={} accountId={} context={}",

@@ -2,7 +2,6 @@ package com.test.financialtracker.transaction.repository;
 
 
 import com.test.financialtracker.transaction.domains.entity.Transactions;
-import com.test.financialtracker.transaction.domains.models.TransactionType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -17,26 +16,26 @@ public interface TransactionRepository extends JpaRepository<Transactions, UUID>
 
     Optional<Transactions> findByReferenceId(UUID referenceId);
 
-    @Query("""
-        SELECT t FROM Transactions t
+    @Query(value = """
+        SELECT * FROM app.fn_trn_transactions t
         WHERE (
-            t.sourceAccountId      = :accountId
-            OR t.destinationAccountId = :accountId
+            t.source_account_id      = :accountId
+            OR t.destination_account_id = :accountId
         )
-        AND (:type      IS NULL OR t.type      = :type)
-        AND (:from      IS NULL OR t.timestamp >= :from)
-        AND (:to        IS NULL OR t.timestamp <= :to)
-        AND (:cursor    IS NULL OR t.timestamp  < :cursor)
+        AND (CAST(:type   AS text)        IS NULL OR t.type      = CAST(:type   AS text))
+        AND (CAST(:from   AS timestamptz) IS NULL OR t.timestamp >= CAST(:from   AS timestamptz))
+        AND (CAST(:to     AS timestamptz) IS NULL OR t.timestamp <= CAST(:to     AS timestamptz))
+        AND (CAST(:cursor AS timestamptz) IS NULL OR t.timestamp  < CAST(:cursor AS timestamptz))
         ORDER BY t.timestamp DESC
         LIMIT :pageSize
-    """)
+    """, nativeQuery = true)
     List<Transactions> findHistory(
-            @Param("accountId") UUID           accountId,
-            @Param("type") TransactionType type,
-            @Param("from")      Instant         from,
-            @Param("to")        Instant         to,
-            @Param("cursor")    Instant         cursor,
-            @Param("pageSize")  int             pageSize
+            @Param("accountId") UUID    accountId,
+            @Param("type")      String  type,
+            @Param("from")      Instant from,
+            @Param("to")        Instant to,
+            @Param("cursor")    Instant cursor,
+            @Param("pageSize")  int     pageSize
     );
 
 }
