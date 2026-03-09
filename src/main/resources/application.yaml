@@ -65,7 +65,7 @@ management:
 # ── Logging ───────────────────────────────────────────────────
 logging:
   pattern:
-    console: "%d{ISO8601} [%X{requestId:-no-req}] [%X{userId:-anonymous}] %-5level %logger{36} - %msg%n"
+    console: "%d{ISO8601} [%X{requestId:-no-req}] [%X{userId:-anonymous}] [%X{httpMethod}] [%X{requestUri}] %-5level %logger{36} - %msg%n"
   level:
     root:                                              INFO
     com.test.financialtracker:                         DEBUG
@@ -98,6 +98,9 @@ spring:
     url: ${SPRING_DATASOURCE_URL}
 
 logging:
+  structured:
+    format:
+      console: logstash
   level:
     org.hibernate.SQL:                             INFO
     org.hibernate.type.descriptor.sql.BasicBinder: INFO

@@ -97,7 +97,6 @@ public class KeycloakAdapter implements IdentityProviderPort {
     @Override
     public boolean isSessionValid(String token) {
         String introspectUrl = tokenUrl() + "/introspect";
-        log.info("Jwt Token for validation: {}", token);
 
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         body.add("client_id", properties.adminClientId());
